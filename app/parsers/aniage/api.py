@@ -3,11 +3,15 @@ from fastapi.responses import JSONResponse
 from fastapi import Depends
 from bs4 import BeautifulSoup
 
+from .schemas import Preview, Series
+from .services import (
+    get_session, get_previews_metadata,
+    get_series_metadata
+)
+
 import aiohttp
 import json
 import logging
-
-from .services import get_session
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +24,9 @@ videoCdn = "https://aniage-video-stream.b-cdn.net/"
 
 # Catalog
 @app.get("/catalog/series/aniage.json", tags=["Aniage"])
-async def addon_catalog(session: aiohttp.ClientSession = Depends(get_session)):
+async def addon_catalog(
+    session: aiohttp.ClientSession = Depends(get_session)
+) -> dict[str, list[Preview]]:
     req = {
         "page": 1,
         "pageSize": 28,
@@ -28,26 +34,17 @@ async def addon_catalog(session: aiohttp.ClientSession = Depends(get_session)):
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
     async with session.post(latestUrl, json=req) as response:
-        metaPreviews = {
-            "metas": [
-                {
-                    "id": f'aniage/{item["id"]}',
-                    "type": "series",
-                    "name": item["title"],
-                    "genres": [genre for genre in item["genres"]],
-                    "poster": f'{imageUrl}/main/{item["posterId"]}?optimize=image&width=296',
-                    "description": item["description"],
-                }
-                for item in (await response.json())["data"]
-            ]
-        }
+        response_data = (await response.json())["data"]
+        previews_metadata = await get_previews_metadata(response_data)
 
-    return JSONResponse(content=metaPreviews)
+    return previews_metadata
 
 
 # Pagination
 @app.get("/catalog/series/aniage/skip={skip}.json", tags=["Aniage"])
-async def addon_catalog_skip(skip: int, session: aiohttp.ClientSession = Depends(get_session)):
+async def addon_catalog_skip(
+    skip: int, session: aiohttp.ClientSession = Depends(get_session)
+) -> dict[str, list[Preview]]:
     req = {
         "page": (skip / 28) + 1,
         "pageSize": 28,
@@ -55,45 +52,21 @@ async def addon_catalog_skip(skip: int, session: aiohttp.ClientSession = Depends
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
     async with session.post(latestUrl, json=req) as response:
-        metaPreviews = {
-            "metas": [
-                {
-                    "id": f'aniage/{item["id"]}',
-                    "type": "series",
-                    "name": item["title"],
-                    "genres": [genre for genre in item["genres"]],
-                    "poster": f'{imageUrl}/main/{item["posterId"]}?optimize=image&width=296',
-                    "description": item["description"],
-                }
-                for item in (await response.json())["data"]
-            ]
-        }
+        response_data = (await response.json())["data"]
+        previews_metadata = await get_previews_metadata(response_data)
 
-    return JSONResponse(content=metaPreviews)
+    return previews_metadata
 
 
 # Custom Metadata
 @app.get("/meta/series/aniage/{id}.json", tags=["Aniage"])
-async def addon_meta(id: str, session: aiohttp.ClientSession = Depends(get_session)):
+async def addon_meta(
+    id: str, session: aiohttp.ClientSession = Depends(get_session)
+) -> dict[str, Series]:
     async with session.get(f"{mainUrl}/watch?wid={id}") as response:
-        soup = BeautifulSoup(await response.text(), "html.parser")
-        meta_json = json.loads(soup.find("script", type="application/json").text)
+        series_metadata = await get_series_metadata(id, await response.text())
 
-        meta = {
-            "meta": {
-                "id": f"aniage/{id}",
-                "type": "series",
-                "name": meta_json["props"]["pageProps"]["title"],
-                "poster": f'{imageUrl}/main/{meta_json["props"]["pageProps"]["posterId"]}',
-                "genres": meta_json["props"]["pageProps"]["genres"],
-                "description": meta_json["props"]["pageProps"]["description"],
-                "director": meta_json["props"]["pageProps"]["studios"],
-                "runtime": f'{meta_json["props"]["pageProps"]["averageDuration"]} хв.',
-                "background": f'{imageUrl}/main/{meta_json["props"]["pageProps"]["posterId"]}',
-            }
-        }
-
-    return JSONResponse(content=meta)
+    return series_metadata
 
 
 # Series
