@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 from fastapi_stremio import app
-from parsers import aniage
+from parsers.aniage import api
 
 LOGO_URL = "https://www.stremio.com/website/stremio-logo-small.png"
 
