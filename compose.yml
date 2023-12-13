@@ -1,0 +1,8 @@
+services:
+  stremiouk:
+    image: stremiouk
+    build:
+      context: .
+    ports:
+      - 8000:8000
+      
