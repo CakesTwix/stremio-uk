@@ -1,0 +1,4 @@
+aiohttp 
+fastapi
+bs4
+uvicorn
