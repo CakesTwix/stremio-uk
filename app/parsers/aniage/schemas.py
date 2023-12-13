@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class Preview(BaseModel):
@@ -10,7 +11,17 @@ class Preview(BaseModel):
     description: str
 
 
+class Videos(BaseModel):
+    id: str
+    title: str
+    thumbnail: str
+    released: str
+    season: int
+    episode: int
+
+
 class Series(Preview):
     director: list[str]
     runtime: str
     background: str
+    videos: list[Videos]
