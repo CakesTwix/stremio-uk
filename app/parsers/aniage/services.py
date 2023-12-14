@@ -5,6 +5,7 @@ import aiohttp
 import json
 
 imageUrl = "https://image.aniage.net"  # TODO: move this to the environment vars
+pageSize = 100
 
 
 async def get_session():
@@ -58,27 +59,26 @@ async def get_videos(
     soup = BeautifulSoup(response_text, "html.parser")
     meta_json = json.loads(soup.find("script", type="application/json").text)
 
-    # Getting list voices
-    for voice in meta_json["props"]["pageProps"]["teams"]:
-        # String build for get voice names
-        stringTeam = "https://master.api.aniage.net/anime/teams/by-ids?"
-        stringTeam += f"ids={voice['teamId']}&"
-        break
+    if meta_json["props"]["pageProps"]["teams"] == []:
+        return videos
+
+    stringTeam = f"https://master.api.aniage.net/anime/teams/by-ids?ids={meta_json['props']['pageProps']['teams'][0]['teamId']}"
 
     async with session.get(stringTeam) as voiceNames:
         voiceNamesJson = await voiceNames.json()
 
-    index = 0
-    for voice in voiceNamesJson:
-        # Do list of episodes
+    # Do list of episodes
+    page = 1
+    while int(meta_json["props"]["pageProps"]["episodes"]) > 0:
         async with session.get(
-            f"https://master.api.aniage.net/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
+            f"https://master.api.aniage.net/anime/episodes?animeId={id}&page={page}&pageSize={pageSize}&sortOrder=ASC&teamId={voiceNamesJson[0]['id']}&volume=1"
         ) as episodes:
             for episode in await episodes.json():
                 episodeName = (
                     f"Серія {episode['episodeNum']}"
                     if episode["title"] in [". ", "."]
                     or episode["title"] == episode["episodeNum"]
+                    or episode["title"].isdigit()
                     else f"Серія {episode['episodeNum']} - {episode['title']}"
                 )
 
@@ -102,6 +102,7 @@ async def get_videos(
                     )
                 )
 
-        index += 1
+            meta_json["props"]["pageProps"]["episodes"] -= pageSize
+            page += 1
 
     return videos

@@ -23,6 +23,8 @@ latestUrl = f"{apiUrl}/v2/anime/find"
 imageUrl = "https://image.aniage.net"
 videoCdn = "https://aniage-video-stream.b-cdn.net/"
 
+pageSize = 100
+
 
 # Catalog
 @app.get("/catalog/series/aniage.json", tags=["Aniage"])
@@ -95,49 +97,65 @@ async def addon_stream(
         async with session.get(stringTeam) as voiceNames:
             voiceNamesJson = await voiceNames.json()
 
+        # Index for voice names
         index = 0
         for voice in voiceNamesJson:
-            # Do list of episodes
-            async with session.get(
-                f"{apiUrl}/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
-            ) as episodes:
-                for episode in await episodes.json():
-                    if int(episode["episodeNum"]) != episodeNum:
-                        continue
+            # Pagination
+            page = 1
+            episodeCount = int(meta_json["props"]["pageProps"]["episodes"])
+            while episodeCount > 0:
+                # Get 100 episodes
+                async with session.get(
+                    f"{apiUrl}/anime/episodes?animeId={id}&page={page}&pageSize={pageSize}&sortOrder=ASC&teamId={voice['id']}&volume=1"
+                ) as episodes:
+                    # Parsing, add to streams
+                    for episode in await episodes.json():
+                        # If no episodeNum - drop
+                        if int(episode["episodeNum"]) != episodeNum:
+                            continue
 
-                    episodeName = (
-                        f"Серія {episode['episodeNum']}"
-                        if episode["title"] in [". ", "."]
-                        or episode["title"] == episode["episodeNum"]
-                        else f"Серія {episode['episodeNum']} - {episode['title']}"
-                    )
+                        # Do cool naming for episode
+                        episodeName = (
+                            f"Серія {episode['episodeNum']}"
+                            if episode["title"] in [". ", "."]
+                            or episode["title"] == episode["episodeNum"]
+                            or episode["title"].isdigit()
+                            else f"Серія {episode['episodeNum']} - {episode['title']}"
+                        )
 
-                    url = None
-                    if episode["playPath"]:
-                        async with session.get(episode["playPath"]) as video:
-                            video_soup = BeautifulSoup(
-                                await video.text(), "html.parser"
+                        # Parsing m3u url
+                        url = None
+                        if episode["playPath"]:
+                            async with session.get(episode["playPath"]) as video:
+                                video_soup = BeautifulSoup(
+                                    await video.text(), "html.parser"
+                                )
+                                url = video_soup.find("source")["src"]
+
+                        elif episode["s3VideoSource"]:
+                            url = (
+                                f"{videoCdn}{episode['s3VideoSource']['playlistPath']}"
                             )
-                            url = video_soup.find("source")["src"]
 
-                    elif episode["s3VideoSource"]:
-                        url = f"{videoCdn}{episode['s3VideoSource']['playlistPath']}"
+                        elif episode["videoSource"]:
+                            async with session.get(
+                                episode["videoSource"]["playPath"]
+                            ) as video:
+                                video_soup = BeautifulSoup(
+                                    await video.text(), "html.parser"
+                                )
+                                url = video_soup.find("source")["src"]
 
-                    elif episode["videoSource"]:
-                        async with session.get(
-                            episode["videoSource"]["playPath"]
-                        ) as video:
-                            video_soup = BeautifulSoup(
-                                await video.text(), "html.parser"
-                            )
-                            url = video_soup.find("source")["src"]
+                        # Add to streams
+                        streams["streams"].append(
+                            {
+                                "name": voiceNamesJson[index]["name"],
+                                "url": url,
+                            }
+                        )
 
-                    streams["streams"].append(
-                        {
-                            "name": voiceNamesJson[index]["name"],
-                            "url": url,
-                        }
-                    )
+                episodeCount -= pageSize
+                page += 1
 
             index += 1
 
