@@ -1,29 +1,20 @@
 from fastapi_stremio import app
-from fastapi.responses import JSONResponse
 from fastapi import Depends
-from bs4 import BeautifulSoup
 
-from .schemas import Preview, Series
+from .settings import settings
+from .schemas import Preview, Series, Stream
 from .services import (
     get_session,
     get_previews_metadata,
     get_series_metadata,
     get_videos,
+    get_streams
 )
 
 import aiohttp
-import json
 import logging
 
 logger = logging.getLogger(__name__)
-
-mainUrl = "https://aniage.net"
-apiUrl = "https://master.api.aniage.net"
-latestUrl = f"{apiUrl}/v2/anime/find"
-imageUrl = "https://image.aniage.net"
-videoCdn = "https://aniage-video-stream.b-cdn.net/"
-
-pageSize = 100
 
 
 # Catalog
@@ -37,7 +28,7 @@ async def addon_catalog(
         "cleanup": [],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
-    async with session.post(latestUrl, json=req) as response:
+    async with session.post(settings.latest_url, json=req) as response:
         response_data = (await response.json())["data"]
         previews_metadata = await get_previews_metadata(response_data)
 
@@ -55,7 +46,7 @@ async def addon_catalog_skip(
         "cleanup": [],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
-    async with session.post(latestUrl, json=req) as response:
+    async with session.post(settings.latest_url, json=req) as response:
         response_data = (await response.json())["data"]
         previews_metadata = await get_previews_metadata(response_data)
 
@@ -67,7 +58,7 @@ async def addon_catalog_skip(
 async def addon_meta(
     id: str, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, Series]:
-    async with session.get(f"{mainUrl}/watch?wid={id}") as response:
+    async with session.get(f"{settings.main_url}/watch?wid={id}") as response:
         series_metadata = await get_series_metadata(
             id,
             await response.text(),
@@ -78,85 +69,13 @@ async def addon_meta(
 
 
 # Series
-@app.get("/stream/series/aniage/{id}/{episodeNum}.json", tags=["Aniage"])
+@app.get("/stream/series/aniage/{id}/{episode_num}.json", tags=["Aniage"])
 async def addon_stream(
-    id: str, episodeNum: int, session: aiohttp.ClientSession = Depends(get_session)
-):
-    streams = {"streams": []}
-
-    async with session.get(f"{mainUrl}/watch?wid={id}") as response:
-        soup = BeautifulSoup(await response.text(), "html.parser")
-        meta_json = json.loads(soup.find("script", type="application/json").text)
-
-        stringTeam = f"{apiUrl}/anime/teams/by-ids?"
-        # Getting list voices
-        for voice in meta_json["props"]["pageProps"]["teams"]:
-            # String build for get voice names
-            stringTeam += f"ids={voice['teamId']}&"
-
-        async with session.get(stringTeam) as voiceNames:
-            voiceNamesJson = await voiceNames.json()
-
-        # Index for voice names
-        index = 0
-        for voice in voiceNamesJson:
-            # Pagination
-            page = 1
-            episodeCount = int(meta_json["props"]["pageProps"]["episodes"])
-            while episodeCount > 0:
-                # Get 100 episodes
-                async with session.get(
-                    f"{apiUrl}/anime/episodes?animeId={id}&page={page}&pageSize={pageSize}&sortOrder=ASC&teamId={voice['id']}&volume=1"
-                ) as episodes:
-                    # Parsing, add to streams
-                    for episode in await episodes.json():
-                        # If no episodeNum - drop
-                        if int(episode["episodeNum"]) != episodeNum:
-                            continue
-
-                        # Do cool naming for episode
-                        episodeName = (
-                            f"Серія {episode['episodeNum']}"
-                            if episode["title"] in [". ", "."]
-                            or episode["title"] == episode["episodeNum"]
-                            or episode["title"].isdigit()
-                            else f"Серія {episode['episodeNum']} - {episode['title']}"
-                        )
-
-                        # Parsing m3u url
-                        url = None
-                        if episode["playPath"]:
-                            async with session.get(episode["playPath"]) as video:
-                                video_soup = BeautifulSoup(
-                                    await video.text(), "html.parser"
-                                )
-                                url = video_soup.find("source")["src"]
-
-                        elif episode["s3VideoSource"]:
-                            url = (
-                                f"{videoCdn}{episode['s3VideoSource']['playlistPath']}"
-                            )
-
-                        elif episode["videoSource"]:
-                            async with session.get(
-                                episode["videoSource"]["playPath"]
-                            ) as video:
-                                video_soup = BeautifulSoup(
-                                    await video.text(), "html.parser"
-                                )
-                                url = video_soup.find("source")["src"]
-
-                        # Add to streams
-                        streams["streams"].append(
-                            {
-                                "name": voiceNamesJson[index]["name"],
-                                "url": url,
-                            }
-                        )
-
-                episodeCount -= pageSize
-                page += 1
-
-            index += 1
-
-    return JSONResponse(content=streams)
+    id: str, episode_num: int,
+    session: aiohttp.ClientSession = Depends(get_session)
+) -> dict[str, list[Stream]]:
+    async with session.get(f"{settings.main_url}/watch?wid={id}") as response:
+        streams = await get_streams(
+            id, episode_num, session, await response.text()
+        )
+    return streams
