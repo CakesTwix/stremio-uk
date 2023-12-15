@@ -17,7 +17,7 @@ async def get_previews_metadata(response_data) -> dict[str, list[Preview]]:
     for item in response_data:
         previews_metadata["metas"].append(
             Preview(
-                id=f'aniage/{item["id"]}',
+                id=f'aniage_series/{item["id"]}',
                 name=item["title"],
                 genres=[genre for genre in item["genres"]],
                 poster=f'{settings.image_url}/main/{item["posterId"]}?optimize=image&width=296',
@@ -36,7 +36,7 @@ async def get_series_metadata(
 
     return {
         "meta": Series(
-            id=f"aniage/{id}",
+            id=f"aniage_series/{id}",
             name=response_data["props"]["pageProps"]["title"],
             poster=f'{settings.image_url}/main/{response_data["props"]["pageProps"]["posterId"]}',
             genres=response_data["props"]["pageProps"]["genres"],
@@ -83,15 +83,13 @@ async def get_videos(
                 if episode["videoSource"]:
                     thumbnail = f"{settings.image_url}/main/{episode['videoSource']['previewPath']}"
                 elif episode["playPath"]:
-                    thumbnail = (
-                        f"{settings.image_url}/main/{episode['previewPath']}"
-                    )
+                    thumbnail = f"{settings.image_url}/main/{episode['previewPath']}"
                 elif episode["s3VideoSource"]:
                     thumbnail = f"{settings.image_url}/{episode['s3VideoSource']['previewPath']}"
 
                 videos.append(
                     Videos(
-                        id=f'aniage/{episode["animeId"]}/{episode["episodeNum"]}',
+                        id=f'aniage_series/{episode["animeId"]}/{episode["episodeNum"]}',
                         title=episode_name,
                         thumbnail=thumbnail,
                         released=episode["lastUpdated"],
@@ -159,9 +157,7 @@ async def get_streams(
                             url = video_soup.find("source")["src"]
 
                     elif episode["s3VideoSource"]:
-                        url = (
-                            f"{settings.video_cdn}{episode['s3VideoSource']['playlistPath']}"
-                        )
+                        url = f"{settings.video_cdn}{episode['s3VideoSource']['playlistPath']}"
 
                     elif episode["videoSource"]:
                         async with session.get(
