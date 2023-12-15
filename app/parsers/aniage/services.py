@@ -60,11 +60,10 @@ async def get_videos(
     response_data = json.loads(soup.find("script", type="application/json").text)
 
     # Getting list voices
-    for voice in response_data["props"]["pageProps"]["teams"]:
-        # String build for get voice names
-        string_team = "https://master.api.aniage.net/anime/teams/by-ids?"
-        string_team += f"ids={voice['teamId']}&"
-        break
+    voice = response_data["props"]["pageProps"]["teams"][0]
+    # String build for get voice names
+    string_team = f"{api_url}/anime/teams/by-ids?"
+    string_team += f"ids={voice['teamId']}&"
 
     async with session.get(string_team) as response:
         voice_names = await response.json()
@@ -73,7 +72,7 @@ async def get_videos(
     for voice in voice_names:
         # Do list of episodes
         async with session.get(
-            f"https://master.api.aniage.net/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
+            f"{api_url}/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
         ) as episodes:
             for episode in await episodes.json():
                 episode_name = (
@@ -84,13 +83,13 @@ async def get_videos(
                 )
 
                 if episode["videoSource"]:
-                    thumbnail = f"https://image.aniage.net/main/{episode['videoSource']['previewPath']}"
+                    thumbnail = f"{image_url}/main/{episode['videoSource']['previewPath']}"
                 elif episode["playPath"]:
                     thumbnail = (
-                        f"https://image.aniage.net/main/{episode['previewPath']}"
+                        f"{image_url}/main/{episode['previewPath']}"
                     )
                 elif episode["s3VideoSource"]:
-                    thumbnail = f"https://image.aniage.net/{episode['s3VideoSource']['previewPath']}"
+                    thumbnail = f"{image_url}/{episode['s3VideoSource']['previewPath']}"
 
                 videos.append(
                     Videos(
