@@ -1,6 +1,7 @@
 from fastapi_stremio import app
 from fastapi import Depends
 
+from .settings import settings
 from .schemas import Preview, Series, Stream
 from .services import (
     get_session,
@@ -15,14 +16,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-main_url = "https://aniage.net"
-api_url = "https://master.api.aniage.net"
-latest_url = f"{api_url}/v2/anime/find"
-image_url = "https://image.aniage.net"
-video_cdn = "https://aniage-video-stream.b-cdn.net/"
-
-pageSize = 100
-
 
 # Catalog
 @app.get("/catalog/series/aniage.json", tags=["Aniage"])
@@ -35,7 +28,7 @@ async def addon_catalog(
         "cleanup": [],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
-    async with session.post(latest_url, json=req) as response:
+    async with session.post(settings.latest_url, json=req) as response:
         response_data = (await response.json())["data"]
         previews_metadata = await get_previews_metadata(response_data)
 
@@ -53,7 +46,7 @@ async def addon_catalog_skip(
         "cleanup": [],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
-    async with session.post(latest_url, json=req) as response:
+    async with session.post(settings.latest_url, json=req) as response:
         response_data = (await response.json())["data"]
         previews_metadata = await get_previews_metadata(response_data)
 
@@ -65,7 +58,7 @@ async def addon_catalog_skip(
 async def addon_meta(
     id: str, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, Series]:
-    async with session.get(f"{main_url}/watch?wid={id}") as response:
+    async with session.get(f"{settings.main_url}/watch?wid={id}") as response:
         series_metadata = await get_series_metadata(
             id,
             await response.text(),
@@ -76,13 +69,13 @@ async def addon_meta(
 
 
 # Series
-@app.get("/stream/series/aniage/{id}/{episodeNum}.json", tags=["Aniage"])
+@app.get("/stream/series/aniage/{id}/{episode_num}.json", tags=["Aniage"])
 async def addon_stream(
-    id: str, episodeNum: int,
+    id: str, episode_num: int,
     session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, list[Stream]]:
-    async with session.get(f"{main_url}/watch?wid={id}") as response:
+    async with session.get(f"{settings.main_url}/watch?wid={id}") as response:
         streams = await get_streams(
-            id, episodeNum, session, await response.text()
+            id, episode_num, session, await response.text()
         )
     return streams
