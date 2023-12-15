@@ -15,11 +15,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-mainUrl = "https://aniage.net"
-apiUrl = "https://master.api.aniage.net"
-latestUrl = f"{apiUrl}/v2/anime/find"
-imageUrl = "https://image.aniage.net"
-videoCdn = "https://aniage-video-stream.b-cdn.net/"
+main_url = "https://aniage.net"
+api_url = "https://master.api.aniage.net"
+latestUrl = f"{api_url}/v2/anime/find"
+image_url = "https://image.aniage.net"
+video_cdn = "https://aniage-video-stream.b-cdn.net/"
 
 
 # Catalog
@@ -63,7 +63,7 @@ async def addon_catalog_skip(
 async def addon_meta(
     id: str, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, Series]:
-    async with session.get(f"{mainUrl}/watch?wid={id}") as response:
+    async with session.get(f"{main_url}/watch?wid={id}") as response:
         series_metadata = await get_series_metadata(
             id,
             await response.text(),
@@ -79,7 +79,7 @@ async def addon_stream(
     id: str, episodeNum: int,
     session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, list[Stream]]:
-    async with session.get(f"{mainUrl}/watch?wid={id}") as response:
+    async with session.get(f"{main_url}/watch?wid={id}") as response:
         streams = await get_streams(
             id, episodeNum, session, await response.text()
         )

@@ -3,9 +3,9 @@ from .schemas import Preview, Series, Videos, Stream
 import aiohttp
 import json
 
-imageUrl = "https://image.aniage.net"  # TODO: move this to the environment vars
-apiUrl = "https://master.api.aniage.net"
-videoCdn = "https://aniage-video-stream.b-cdn.net/"
+image_url = "https://image.aniage.net"  # TODO: move this to the environment vars
+api_url = "https://master.api.aniage.net"
+video_cdn = "https://aniage-video-stream.b-cdn.net/"
 
 
 async def get_session():
@@ -22,7 +22,7 @@ async def get_previews_metadata(response_data) -> dict[str, list[Preview]]:
                 id=f'aniage/{item["id"]}',
                 name=item["title"],
                 genres=[genre for genre in item["genres"]],
-                poster=f'{imageUrl}/main/{item["posterId"]}?optimize=image&width=296',
+                poster=f'{image_url}/main/{item["posterId"]}?optimize=image&width=296',
                 description=item["description"],
             )
         )
@@ -40,12 +40,12 @@ async def get_series_metadata(
         "meta": Series(
             id=f"aniage/{id}",
             name=response_data["props"]["pageProps"]["title"],
-            poster=f'{imageUrl}/main/{response_data["props"]["pageProps"]["posterId"]}',
+            poster=f'{image_url}/main/{response_data["props"]["pageProps"]["posterId"]}',
             genres=response_data["props"]["pageProps"]["genres"],
             description=response_data["props"]["pageProps"]["description"],
             director=response_data["props"]["pageProps"]["studios"],
             runtime=f'{response_data["props"]["pageProps"]["averageDuration"]} хв.',
-            background=f'{imageUrl}/main/{response_data["props"]["pageProps"]["posterId"]}',
+            background=f'{image_url}/main/{response_data["props"]["pageProps"]["posterId"]}',
             videos=videos,
         )
     }
@@ -57,26 +57,26 @@ async def get_videos(
     videos = []
 
     soup = BeautifulSoup(response_text, "html.parser")
-    meta_json = json.loads(soup.find("script", type="application/json").text)
+    response_data = json.loads(soup.find("script", type="application/json").text)
 
     # Getting list voices
-    for voice in meta_json["props"]["pageProps"]["teams"]:
+    for voice in response_data["props"]["pageProps"]["teams"]:
         # String build for get voice names
-        stringTeam = "https://master.api.aniage.net/anime/teams/by-ids?"
-        stringTeam += f"ids={voice['teamId']}&"
+        string_team = "https://master.api.aniage.net/anime/teams/by-ids?"
+        string_team += f"ids={voice['teamId']}&"
         break
 
-    async with session.get(stringTeam) as voiceNames:
-        voiceNamesJson = await voiceNames.json()
+    async with session.get(string_team) as response:
+        voice_names = await response.json()
 
     index = 0
-    for voice in voiceNamesJson:
+    for voice in voice_names:
         # Do list of episodes
         async with session.get(
             f"https://master.api.aniage.net/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
         ) as episodes:
             for episode in await episodes.json():
-                episodeName = (
+                episode_name = (
                     f"Серія {episode['episodeNum']}"
                     if episode["title"] in [". ", "."]
                     or episode["title"] == episode["episodeNum"]
@@ -95,7 +95,7 @@ async def get_videos(
                 videos.append(
                     Videos(
                         id=f'aniage/{episode["animeId"]}/{episode["episodeNum"]}',
-                        title=episodeName,
+                        title=episode_name,
                         thumbnail=thumbnail,
                         released=episode["lastUpdated"],
                         season=episode["volume"],
@@ -114,22 +114,22 @@ async def get_streams(
     streams = {"streams": []}
 
     soup = BeautifulSoup(response_data, "html.parser")
-    meta_json = json.loads(soup.find("script", type="application/json").text)
+    response_data = json.loads(soup.find("script", type="application/json").text)
 
-    stringTeam = f"{apiUrl}/anime/teams/by-ids?"
+    string_team = f"{api_url}/anime/teams/by-ids?"
     # Getting list voices
-    for voice in meta_json["props"]["pageProps"]["teams"]:
+    for voice in response_data["props"]["pageProps"]["teams"]:
         # String build for get voice names
-        stringTeam += f"ids={voice['teamId']}&"
+        string_team += f"ids={voice['teamId']}&"
 
-    async with session.get(stringTeam) as voiceNames:
-        voiceNamesJson = await voiceNames.json()
+    async with session.get(string_team) as response:
+        voice_names = await response.json()
 
     index = 0
-    for voice in voiceNamesJson:
+    for voice in voice_names:
         # Do list of episodes
         async with session.get(
-            f"{apiUrl}/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
+            f"{api_url}/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
         ) as episodes:
             for episode in await episodes.json():
                 if int(episode["episodeNum"]) != episodeNum:
@@ -144,7 +144,7 @@ async def get_streams(
                         url = video_soup.find("source")["src"]
 
                 elif episode["s3VideoSource"]:
-                    url = f"{videoCdn}{episode['s3VideoSource']['playlistPath']}"
+                    url = f"{video_cdn}{episode['s3VideoSource']['playlistPath']}"
 
                 elif episode["videoSource"]:
                     async with session.get(
@@ -157,7 +157,7 @@ async def get_streams(
 
                 streams["streams"].append(
                     Stream(
-                        name=voiceNamesJson[index]["name"],
+                        name=voice_names[index]["name"],
                         url=url,
                     )
                 )
