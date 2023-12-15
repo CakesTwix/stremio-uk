@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 main_url = "https://aniage.net"
 api_url = "https://master.api.aniage.net"
-latestUrl = f"{api_url}/v2/anime/find"
+latest_url = f"{api_url}/v2/anime/find"
 image_url = "https://image.aniage.net"
 video_cdn = "https://aniage-video-stream.b-cdn.net/"
 
@@ -33,7 +33,7 @@ async def addon_catalog(
         "cleanup": [],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
-    async with session.post(latestUrl, json=req) as response:
+    async with session.post(latest_url, json=req) as response:
         response_data = (await response.json())["data"]
         previews_metadata = await get_previews_metadata(response_data)
 
@@ -51,7 +51,7 @@ async def addon_catalog_skip(
         "cleanup": [],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
-    async with session.post(latestUrl, json=req) as response:
+    async with session.post(latest_url, json=req) as response:
         response_data = (await response.json())["data"]
         previews_metadata = await get_previews_metadata(response_data)
 
