@@ -1,18 +1,16 @@
 from fastapi_stremio import app
-from fastapi.responses import JSONResponse
 from fastapi import Depends
-from bs4 import BeautifulSoup
 
-from .schemas import Preview, Series
+from .schemas import Preview, Series, Stream
 from .services import (
     get_session,
     get_previews_metadata,
     get_series_metadata,
     get_videos,
+    get_streams
 )
 
 import aiohttp
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -78,67 +76,11 @@ async def addon_meta(
 # Series
 @app.get("/stream/series/aniage/{id}/{episodeNum}.json", tags=["Aniage"])
 async def addon_stream(
-    id: str, episodeNum: int, session: aiohttp.ClientSession = Depends(get_session)
-):
-    streams = {"streams": []}
-
+    id: str, episodeNum: int,
+    session: aiohttp.ClientSession = Depends(get_session)
+) -> dict[str, list[Stream]]:
     async with session.get(f"{mainUrl}/watch?wid={id}") as response:
-        soup = BeautifulSoup(await response.text(), "html.parser")
-        meta_json = json.loads(soup.find("script", type="application/json").text)
-
-        stringTeam = f"{apiUrl}/anime/teams/by-ids?"
-        # Getting list voices
-        for voice in meta_json["props"]["pageProps"]["teams"]:
-            # String build for get voice names
-            stringTeam += f"ids={voice['teamId']}&"
-
-        async with session.get(stringTeam) as voiceNames:
-            voiceNamesJson = await voiceNames.json()
-
-        index = 0
-        for voice in voiceNamesJson:
-            # Do list of episodes
-            async with session.get(
-                f"{apiUrl}/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
-            ) as episodes:
-                for episode in await episodes.json():
-                    if int(episode["episodeNum"]) != episodeNum:
-                        continue
-
-                    episodeName = (
-                        f"Серія {episode['episodeNum']}"
-                        if episode["title"] in [". ", "."]
-                        or episode["title"] == episode["episodeNum"]
-                        else f"Серія {episode['episodeNum']} - {episode['title']}"
-                    )
-
-                    url = None
-                    if episode["playPath"]:
-                        async with session.get(episode["playPath"]) as video:
-                            video_soup = BeautifulSoup(
-                                await video.text(), "html.parser"
-                            )
-                            url = video_soup.find("source")["src"]
-
-                    elif episode["s3VideoSource"]:
-                        url = f"{videoCdn}{episode['s3VideoSource']['playlistPath']}"
-
-                    elif episode["videoSource"]:
-                        async with session.get(
-                            episode["videoSource"]["playPath"]
-                        ) as video:
-                            video_soup = BeautifulSoup(
-                                await video.text(), "html.parser"
-                            )
-                            url = video_soup.find("source")["src"]
-
-                    streams["streams"].append(
-                        {
-                            "name": voiceNamesJson[index]["name"],
-                            "url": url,
-                        }
-                    )
-
-            index += 1
-
-    return JSONResponse(content=streams)
+        streams = await get_streams(
+            id, episodeNum, session, await response.text()
+        )
+    return streams

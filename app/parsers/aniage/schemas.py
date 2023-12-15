@@ -25,3 +25,8 @@ class Series(Preview):
     runtime: str
     background: str
     videos: list[Videos]
+
+
+class Stream(BaseModel):
+    name: str
+    url: str | list[str] | None

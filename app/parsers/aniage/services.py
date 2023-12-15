@@ -1,10 +1,11 @@
 from bs4 import BeautifulSoup
-from .schemas import Preview, Series, Videos
-from fastapi import Depends
+from .schemas import Preview, Series, Videos, Stream
 import aiohttp
 import json
 
 imageUrl = "https://image.aniage.net"  # TODO: move this to the environment vars
+apiUrl = "https://master.api.aniage.net"
+videoCdn = "https://aniage-video-stream.b-cdn.net/"
 
 
 async def get_session():
@@ -30,7 +31,7 @@ async def get_previews_metadata(response_data) -> dict[str, list[Preview]]:
 
 
 async def get_series_metadata(
-    id: str, response_text: str, videos=list[Videos]
+    id: str, response_text: str, videos: list[Videos]
 ) -> dict[str, Series]:
     soup = BeautifulSoup(response_text, "html.parser")
     response_data = json.loads(soup.find("script", type="application/json").text)
@@ -105,3 +106,61 @@ async def get_videos(
         index += 1
 
     return videos
+
+
+async def get_streams(
+    id: str, episodeNum: int, session: aiohttp.ClientSession, response_data
+) -> dict[str, list[Stream]]:
+    streams = {"streams": []}
+
+    soup = BeautifulSoup(response_data, "html.parser")
+    meta_json = json.loads(soup.find("script", type="application/json").text)
+
+    stringTeam = f"{apiUrl}/anime/teams/by-ids?"
+    # Getting list voices
+    for voice in meta_json["props"]["pageProps"]["teams"]:
+        # String build for get voice names
+        stringTeam += f"ids={voice['teamId']}&"
+
+    async with session.get(stringTeam) as voiceNames:
+        voiceNamesJson = await voiceNames.json()
+
+    index = 0
+    for voice in voiceNamesJson:
+        # Do list of episodes
+        async with session.get(
+            f"{apiUrl}/anime/episodes?animeId={id}&page=1&pageSize=30&sortOrder=ASC&teamId={voice['id']}&volume=1"
+        ) as episodes:
+            for episode in await episodes.json():
+                if int(episode["episodeNum"]) != episodeNum:
+                    continue
+
+                url = None
+                if episode["playPath"]:
+                    async with session.get(episode["playPath"]) as video:
+                        video_soup = BeautifulSoup(
+                            await video.text(), "html.parser"
+                        )
+                        url = video_soup.find("source")["src"]
+
+                elif episode["s3VideoSource"]:
+                    url = f"{videoCdn}{episode['s3VideoSource']['playlistPath']}"
+
+                elif episode["videoSource"]:
+                    async with session.get(
+                        episode["videoSource"]["playPath"]
+                    ) as video:
+                        video_soup = BeautifulSoup(
+                            await video.text(), "html.parser"
+                        )
+                        url = video_soup.find("source")["src"]
+
+                streams["streams"].append(
+                    Stream(
+                        name=voiceNamesJson[index]["name"],
+                        url=url,
+                    )
+                )
+
+        index += 1
+    return streams
