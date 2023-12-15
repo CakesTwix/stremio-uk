@@ -21,6 +21,8 @@ latest_url = f"{api_url}/v2/anime/find"
 image_url = "https://image.aniage.net"
 video_cdn = "https://aniage-video-stream.b-cdn.net/"
 
+pageSize = 100
+
 
 # Catalog
 @app.get("/catalog/series/aniage.json", tags=["Aniage"])
