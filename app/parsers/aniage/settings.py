@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    name: str = "Aniage"
     main_url: str = "https://aniage.net"
     api_url: str = "https://master.api.aniage.net"
     latest_url: str = f"{api_url}/v2/anime/find"

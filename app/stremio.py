@@ -1,29 +1,12 @@
-from fastapi.responses import JSONResponse
-from fastapi_stremio import app
-from parsers.aniage import api
-from schemas import Manifest, Catalogs
+import glob
+import importlib
+from main import app
+import logging
 
+logger = logging.getLogger(__name__)
 
-@app.get("/manifest.json", tags=["Base"])
-def aniage_manifest() -> Manifest:
-    return Manifest(
-        id="ua.cakestwix.stremio",
-        version="1.1.0",
-        logo="https://www.stremio.com/website/stremio-logo-small.png",
-        name="Українське",
-        description="Український Stremio-аддон",
-        types=["movie", "series"],
-        catalogs=[
-            Catalogs(
-                type="series",
-                id="aniage_series",
-                name="Aniage Серіали",
-                extra=[{"genres": "anime"}],
-            ),
-        ],
-        resources=[
-            "catalog",
-            "meta",
-            "stream",
-        ],
-    )
+module_paths = glob.glob("parsers/**/api.py", recursive=True)
+for module_path in module_paths:
+    module_name = module_path.replace("/", ".")[:-3]
+    logger.info(module_name)
+    importlib.import_module(module_name)

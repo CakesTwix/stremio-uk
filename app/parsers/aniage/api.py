@@ -1,4 +1,4 @@
-from fastapi_stremio import app
+from main import app
 from fastapi import Depends
 from schemas import Manifest, Catalogs
 
@@ -15,22 +15,31 @@ from .services import (
 import aiohttp
 
 
-@app.get("/aniage/manifest.json", tags=["Aniage"])
+@app.get(f"/{settings.name.lower()}/manifest.json", tags=[settings.name])
 def addon_manifest() -> Manifest:
     return Manifest(
         id="ua.cakestwix.stremio.aniage",
-        version="1.0.0",
+        version="1.1.0",
         logo=f"https://www.google.com/s2/favicons?domain={settings.main_url}&sz=128",
         name="Aniage",
         description="Перший нормальний сайт, який зроблено з нуля без використання руснявих технологій.",
         types=["movie", "series"],
         catalogs=[
             Catalogs(
-                type="series",
-                id="aniage_series",
-                name="Aniage Серіали",
+                type=item[1],
+                id=f"aniage_{item[0]}",
+                name=f"Aniage {item[0]}",
                 extra=[{"genres": "anime"}],
-            ),
+            )
+            for item in [
+                ["Повнометражне", "movie"],
+                ["ТБ-Серіал", "series"],
+                ["ONA", "series"],
+                ["OVA", "series"],
+                ["SPECIALS", "series"],
+                ["ТБ-Спешл", "series"],
+                ["Короткометражне", "movie"],
+            ]
         ],
         resources=[
             "catalog",
@@ -41,58 +50,86 @@ def addon_manifest() -> Manifest:
 
 
 # Catalog
-@app.get("/aniage/catalog/series/aniage_series.json", tags=["Aniage"])
+@app.get("/aniage/catalog/{type_}/aniage_{value}.json", tags=[settings.name])
 async def addon_catalog(
+    type_: str,
+    value: str,
     session: aiohttp.ClientSession = Depends(get_session),
 ) -> dict[str, list[Preview]]:
     req = {
         "page": 1,
         "pageSize": 28,
-        "cleanup": [],
+        "cleanup": [
+            {
+                "property": "type",
+                "type": "=",
+                "value": [
+                    value,
+                ],
+            }
+        ],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
     async with session.post(settings.latest_url, json=req) as response:
         response_data = (await response.json())["data"]
-        previews_metadata = await get_previews_metadata(response_data)
+        previews_metadata = await get_previews_metadata(response_data, type_)
 
     return previews_metadata
 
 
 # Pagination
-@app.get("/aniage/catalog/series/aniage_series/skip={skip}.json", tags=["Aniage"])
+@app.get(
+    "/aniage/catalog/{type_}/aniage_{value}/skip={skip}.json", tags=[settings.name]
+)
 async def addon_catalog_skip(
-    skip: int, session: aiohttp.ClientSession = Depends(get_session)
+    value: str,
+    skip: int,
+    type_: str,
+    session: aiohttp.ClientSession = Depends(get_session),
 ) -> dict[str, list[Preview]]:
     req = {
         "page": (skip / 28) + 1,
         "pageSize": 28,
-        "cleanup": [],
+        "cleanup": [
+            {
+                "property": "type",
+                "type": "=",
+                "value": [
+                    value,
+                ],
+            }
+        ],
         "order": {"by": "lastUpdated", "direction": "DESC"},
     }
     async with session.post(settings.latest_url, json=req) as response:
+        json_content = await response.json()
+        if "statusCode" in json_content:
+            return {"metas": []}
+
         response_data = (await response.json())["data"]
-        previews_metadata = await get_previews_metadata(response_data)
+        previews_metadata = await get_previews_metadata(response_data, type_)
 
     return previews_metadata
 
 
 # Custom Metadata
-@app.get("/aniage/meta/series/aniage_series/{id}.json", tags=["Aniage"])
+@app.get("/aniage/meta/{type_}/{id}.json", tags=[settings.name])
 async def addon_meta(
-    id: str, session: aiohttp.ClientSession = Depends(get_session)
+    id: str, type_: str, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, Series]:
     async with session.get(f"{settings.main_url}/watch?wid={id}") as response:
         series_metadata = await get_series_metadata(
             id,
             await response.text(),
             await get_videos(id, await response.text(), session),
+            type_,
         )
 
     return series_metadata
 
 
 # Series
-@app.get("/aniage/stream/series/aniage_series/{id}/{episode_num}.json", tags=["Aniage"])
+@app.get("/aniage/stream/{type_}/{id}/{episode_num}.json", tags=["Aniage"])
 async def addon_stream(
     id: str, episode_num: int, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, list[Stream]]:

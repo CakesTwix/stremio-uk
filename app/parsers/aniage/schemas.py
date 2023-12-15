@@ -4,7 +4,7 @@ from typing import List
 
 class Preview(BaseModel):
     id: str
-    type: str = "series"
+    type: str
     name: str
     genres: list[str]
     poster: str

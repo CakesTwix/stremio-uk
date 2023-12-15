@@ -11,13 +11,14 @@ async def get_session():
         yield session
 
 
-async def get_previews_metadata(response_data) -> dict[str, list[Preview]]:
+async def get_previews_metadata(response_data, type_title) -> dict[str, list[Preview]]:
     previews_metadata = {"metas": []}
 
     for item in response_data:
         previews_metadata["metas"].append(
             Preview(
-                id=f'aniage_series/{item["id"]}',
+                id=f'{item["id"]}',
+                type=type_title,
                 name=item["title"],
                 genres=[genre for genre in item["genres"]],
                 poster=f'{settings.image_url}/main/{item["posterId"]}?optimize=image&width=296',
@@ -29,14 +30,15 @@ async def get_previews_metadata(response_data) -> dict[str, list[Preview]]:
 
 
 async def get_series_metadata(
-    id: str, response_text: str, videos: list[Videos]
+    id: str, response_text: str, videos: list[Videos], type_title: str
 ) -> dict[str, Series]:
     soup = BeautifulSoup(response_text, "html.parser")
     response_data = json.loads(soup.find("script", type="application/json").text)
 
     return {
         "meta": Series(
-            id=f"aniage_series/{id}",
+            id=f"{id}",
+            type=type_title,
             name=response_data["props"]["pageProps"]["title"],
             poster=f'{settings.image_url}/main/{response_data["props"]["pageProps"]["posterId"]}',
             genres=response_data["props"]["pageProps"]["genres"],
@@ -89,7 +91,7 @@ async def get_videos(
 
                 videos.append(
                     Videos(
-                        id=f'aniage_series/{episode["animeId"]}/{episode["episodeNum"]}',
+                        id=f'{episode["animeId"]}/{episode["episodeNum"]}',
                         title=episode_name,
                         thumbnail=thumbnail,
                         released=episode["lastUpdated"],
