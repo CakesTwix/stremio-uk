@@ -3,3 +3,4 @@ fastapi
 bs4
 uvicorn
 pydantic-settings
+httpx

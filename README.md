@@ -32,12 +32,12 @@ http://127.0.0.1:8000/manifest.json
 
 2. Встановлюйте залежності
 	```bash
-	pip install aiohttp fastapi bs4
+	cd streamio-uk; pip install -r requirements.txt
 	```
 
 3. Запускайте сервер!
 	```bash
-	cd app; uvicorn stremio:app --reload
+	uvicorn app.stremio:app --reload
 	```
 - Документація від FastAPI
 	```
