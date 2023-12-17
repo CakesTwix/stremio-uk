@@ -5,11 +5,13 @@
 </p>
 <p align="center">
 <img src="https://img.shields.io/github/languages/code-size/CakesTwix/cloudstream-extensions-uk?style=for-the-badge"/>
-<img src="https://img.shields.io/github/actions/workflow/status/CakesTwix/cloudstream-extensions-uk/build.yml?style=for-the-badge"/>
 <img src="https://img.shields.io/badge/Made_with-Python-099FF0?style=for-the-badge&logo=python"/><br><br>
 <a href="https://www.buymeacoffee.com/cakestwix"><img width="150" src="https://img.buymeacoffee.com/button-api/?text=Buy me a tea&emoji=🍵&slug=cakestwix&button_colour=FF5F5F&font_colour=ffffff&font_family=Poppins&outline_colour=000000&coffee_colour=FFDD00" /></a>
 </p>
 
+|                                Іконка                               |  Назва |                Опис                | Версія |                      Маніфест                      |
+|:-------------------------------------------------------------------:|:------:|:----------------------------------:|:------:|:--------------------------------------------------:|
+| ![Icon](https://www.google.com/s2/favicons?domain=aniage.net&sz=32) | Aniage | Ваше улюблене аніме   українською! |  1.2.0 | https://stremio.cakestwix.com/aniage/manifest.json |
 
 <!-- Brief information about the extension -->
 ## 📖 Що це таке?
