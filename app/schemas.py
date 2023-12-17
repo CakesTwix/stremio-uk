@@ -1,5 +1,35 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+
+
+class Preview(BaseModel):
+    id: str
+    type: str
+    name: str
+    genres: list[str]
+    poster: Optional[str] = None
+    description: str
+
+
+class Videos(BaseModel):
+    id: str
+    title: str
+    thumbnail: Optional[str] = None
+    released: Optional[str] = None
+    season: Optional[int] = None
+    episode: Optional[int] = None
+
+
+class Series(Preview):
+    director: list[str]
+    runtime: Optional[str] = None
+    background: str
+    videos: list[Videos]
+
+
+class Stream(BaseModel):
+    name: str
+    url: str | list[str] | None
 
 
 class Catalogs(BaseModel):

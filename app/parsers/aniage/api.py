@@ -1,9 +1,8 @@
 from main import app
 from fastapi import Depends
-from schemas import Manifest, Catalogs
+from schemas import Manifest, Catalogs, Preview, Series, Stream
 
 from .settings import settings
-from .schemas import Preview, Series, Stream
 from .services import (
     get_session,
     get_previews_metadata,
