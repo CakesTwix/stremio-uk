@@ -19,7 +19,7 @@ import aiohttp
 def addon_manifest() -> Manifest:
     manifest = Manifest(
         id="ua.cakestwix.stremio.aniage",
-        version="1.1.0",
+        version="1.2.0",
         logo=f"https://www.google.com/s2/favicons?domain={settings.main_url}&sz=128",
         name="Aniage",
         description="Перший нормальний сайт, який зроблено з нуля без використання руснявих технологій.",
