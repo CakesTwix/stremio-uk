@@ -1,9 +1,10 @@
 from bs4 import BeautifulSoup
-from .schemas import Preview, Series, Videos, Stream
+from app.schemas import Preview, Series, Stream, Videos
 from .settings import settings
 
 import aiohttp
 import json
+from .utils import get_type
 
 
 async def get_session():
@@ -11,14 +12,14 @@ async def get_session():
         yield session
 
 
-async def get_previews_metadata(response_data, type_title) -> dict[str, list[Preview]]:
+async def get_previews_metadata(response_data) -> dict[str, list[Preview]]:
     previews_metadata = {"metas": []}
 
     for item in response_data:
         previews_metadata["metas"].append(
             Preview(
                 id=f'{item["id"]}',
-                type=type_title,
+                type=get_type(item["type"]),
                 name=item["title"],
                 genres=[genre for genre in item["genres"]],
                 poster=f'{settings.image_url}/main/{item["posterId"]}?optimize=image&width=296',
