@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from schemas import Manifest, Catalogs, Preview, Series, Stream, Videos
+from app.schemas import Preview, Series, Stream, Videos
 from .settings import settings
 
 import aiohttp

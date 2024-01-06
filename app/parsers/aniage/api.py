@@ -1,6 +1,5 @@
-from main import app
-from fastapi import Depends
-from schemas import Manifest, Catalogs, Preview, Series, Stream
+from fastapi import Depends, APIRouter
+from app.schemas import Manifest, Catalogs, Preview, Series, Stream
 
 from .settings import settings
 from .services import (
@@ -13,8 +12,10 @@ from .services import (
 
 import aiohttp
 
+router = APIRouter(prefix="/aniage")
 
-@app.get(f"/{settings.name.lower()}/manifest.json", tags=[settings.name])
+
+@router.get("/manifest.json", tags=[settings.name])
 def addon_manifest() -> Manifest:
     manifest = Manifest(
         id="ua.cakestwix.stremio.aniage",
@@ -62,9 +63,8 @@ def addon_manifest() -> Manifest:
 
 
 # Catalog
-@app.get("/aniage/catalog/{type_}/aniage_{value}.json", tags=[settings.name])
+@router.get("/catalog/{type_}/aniage_{value}.json", tags=[settings.name])
 async def addon_catalog(
-    type_: str,
     value: str,
     session: aiohttp.ClientSession = Depends(get_session),
 ) -> dict[str, list[Preview]]:
@@ -90,13 +90,12 @@ async def addon_catalog(
 
 
 # Pagination
-@app.get(
-    "/aniage/catalog/{type_}/aniage_{value}/skip={skip}.json", tags=[settings.name]
+@router.get(
+    "/catalog/{type_}/aniage_{value}/skip={skip}.json", tags=[settings.name]
 )
 async def addon_catalog_skip(
     value: str,
     skip: int,
-    type_: str,
     session: aiohttp.ClientSession = Depends(get_session),
 ) -> dict[str, list[Preview]]:
     req = {
@@ -119,13 +118,13 @@ async def addon_catalog_skip(
             return {"metas": []}
 
         response_data = (await response.json())["data"]
-        previews_metadata = await get_previews_metadata(response_data, type_)
+        previews_metadata = await get_previews_metadata(response_data)
 
     return previews_metadata
 
 
 # Custom Metadata
-@app.get("/aniage/meta/{type_}/{id}.json", tags=[settings.name])
+@router.get("/meta/{type_}/{id}.json", tags=[settings.name])
 async def addon_meta(
     id: str, type_: str, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, Series]:
@@ -141,7 +140,7 @@ async def addon_meta(
 
 
 # Series
-@app.get("/aniage/stream/{type_}/{id}/{episode_num}.json", tags=[settings.name])
+@router.get("/stream/{type_}/{id}/{episode_num}.json", tags=[settings.name])
 async def addon_stream(
     id: str, episode_num: int, session: aiohttp.ClientSession = Depends(get_session)
 ) -> dict[str, list[Stream]]:
@@ -151,8 +150,8 @@ async def addon_stream(
 
 
 # Search
-@app.get(
-    "/aniage/catalog/series/aniage_search/search={query}.json", tags=[settings.name]
+@router.get(
+    "/catalog/series/aniage_search/search={query}.json", tags=[settings.name]
 )
 async def addon_search(
     query: str,

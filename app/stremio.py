@@ -1,6 +1,6 @@
 import glob
 import importlib
-from main import app
+from app.main import app
 import logging
 
 logger = logging.getLogger(__name__)
