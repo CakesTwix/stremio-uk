@@ -12,23 +12,23 @@ from .services import (
 
 import aiohttp
 
-router = APIRouter(prefix="/aniage")
+router = APIRouter(prefix="/watari")
 
 
 @router.get("/manifest.json", tags=[settings.name])
 def addon_manifest() -> Manifest:
     manifest = Manifest(
-        id="ua.cakestwix.stremio.aniage",
+        id="ua.cakestwix.stremio.watari",
         version="1.2.0",
         logo=f"https://www.google.com/s2/favicons?domain={settings.main_url}&sz=128",
-        name="Aniage",
+        name="Watari",
         description="Перший нормальний сайт, який зроблено з нуля без використання руснявих технологій.",
         types=["movie", "series"],
         catalogs=[
             Catalogs(
                 type=item[1],
-                id=f"aniage_{item[0]}",
-                name=f"Aniage {item[0]}",
+                id=f"watari_{item[0]}",
+                name=f"Watari {item[0]}",
                 extra=[{"genres": "anime"}],
             )
             for item in [
@@ -52,8 +52,8 @@ def addon_manifest() -> Manifest:
     manifest.catalogs.append(
         Catalogs(
             type="series",
-            id=f"aniage_search",
-            name=f"Aniage Search",
+            id=f"watari_search",
+            name=f"Watari Search",
             extra=[{"name": "search", "isRequired": True}],
         )
     )
@@ -63,7 +63,7 @@ def addon_manifest() -> Manifest:
 
 
 # Catalog
-@router.get("/catalog/{type_}/aniage_{value}.json", tags=[settings.name])
+@router.get("/catalog/{type_}/watari_{value}.json", tags=[settings.name])
 async def addon_catalog(
     value: str,
     session: aiohttp.ClientSession = Depends(get_session),
@@ -91,7 +91,7 @@ async def addon_catalog(
 
 # Pagination
 @router.get(
-    "/catalog/{type_}/aniage_{value}/skip={skip}.json", tags=[settings.name]
+    "/catalog/{type_}/watari_{value}/skip={skip}.json", tags=[settings.name]
 )
 async def addon_catalog_skip(
     value: str,
@@ -151,7 +151,7 @@ async def addon_stream(
 
 # Search
 @router.get(
-    "/catalog/series/aniage_search/search={query}.json", tags=[settings.name]
+    "/catalog/series/watari_search/search={query}.json", tags=[settings.name]
 )
 async def addon_search(
     query: str,

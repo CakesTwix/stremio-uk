@@ -11,7 +11,7 @@
 
 |                                Іконка                               |  Назва |                Опис                | Версія |                      Маніфест                      |
 |:-------------------------------------------------------------------:|:------:|:----------------------------------:|:------:|:--------------------------------------------------:|
-| ![Icon](https://www.google.com/s2/favicons?domain=aniage.net&sz=32) | Aniage | Ваше улюблене аніме   українською! |  1.2.0 | https://stremio.cakestwix.com/aniage/manifest.json |
+| ![Icon](https://www.google.com/s2/favicons?domain=watari-anime.com&sz=32) | Watari | Ваше улюблене аніме   українською! |  1.2.0 | https://stremio.cakestwix.com/aniage/manifest.json |
 | ![Icon](https://www.google.com/s2/favicons?domain=kartina.tv&sz=32) | Телебачення | Наше Телебачення |  1.0.0 | https://stremio.cakestwix.com/tvua/manifest.json |
 
 <!-- Brief information about the extension -->

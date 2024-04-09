@@ -2,8 +2,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    name: str = "Aniage"
-    main_url: str = "https://aniage.net"
+    name: str = "Watari Anime"
+    main_url: str = "https://watari-anime.com"
     api_url: str = "https://master.api.aniage.net"
     latest_url: str = f"{api_url}/v2/anime/find"
     image_url: str = "https://image.aniage.net"
