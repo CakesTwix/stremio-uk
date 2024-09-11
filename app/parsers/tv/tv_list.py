@@ -1,4 +1,4 @@
-from schemas import Preview, Series, Videos
+from app.schemas import Preview, Series, Videos
 
 catalog_tv = [
     Preview(

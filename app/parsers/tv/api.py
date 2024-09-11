@@ -1,14 +1,14 @@
-from main import app
-from fastapi import Depends, HTTPException
-from schemas import Manifest, Catalogs, Preview, Series, Stream
+from fastapi import Depends, HTTPException, APIRouter
+from app.schemas import Manifest, Catalogs, Preview, Series, Stream
 
 from .tv_list import meta_tv, catalog_tv
 from .stream_list import streams
 from .settings import settings
 import aiohttp
 
+router = APIRouter(prefix="/tv")
 
-@app.get(f"/{settings.name.lower()}/manifest.json", tags=[settings.name])
+@router.get(f"/{settings.name.lower()}/manifest.json", tags=[settings.name])
 def addon_manifest() -> Manifest:
     manifest = Manifest(
         id="ua.cakestwix.stremio.tv",
@@ -32,13 +32,13 @@ def addon_manifest() -> Manifest:
 
 
 # Catalog
-@app.get(f"/{settings.name.lower()}/catalog/tv/tv_ua.json", tags=[settings.name])
+@router.get(f"/{settings.name.lower()}/catalog/tv/tv_ua.json", tags=[settings.name])
 async def addon_catalog() -> dict[str, list[Preview]]:
     return {"metas": catalog_tv}
 
 
 # Metadata
-@app.get("/tvua/meta/tv/{id}.json", tags=[settings.name])
+@router.get("/tvua/meta/tv/{id}.json", tags=[settings.name])
 async def addon_meta(id: str) -> dict[str, Series]:
     if id not in meta_tv:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -47,7 +47,7 @@ async def addon_meta(id: str) -> dict[str, Series]:
 
 
 # Stream
-@app.get("/tvua/stream/tv/{id}.json", tags=[settings.name])
+@router.get("/tvua/stream/tv/{id}.json", tags=[settings.name])
 async def addon_stream(id: str) -> dict[str, list[Stream]]:
     if id not in streams:
         raise HTTPException(status_code=404, detail="Item not found")

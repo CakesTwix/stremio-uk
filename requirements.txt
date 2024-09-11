@@ -1,5 +1,7 @@
 aiohttp 
+aioredis
 fastapi
+fastapi-cache2
 bs4
 uvicorn
 pydantic-settings

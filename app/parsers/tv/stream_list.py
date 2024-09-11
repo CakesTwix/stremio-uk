@@ -1,4 +1,4 @@
-from schemas import Stream
+from app.schemas import Stream
 
 streams = {
     "oneplusone": [
