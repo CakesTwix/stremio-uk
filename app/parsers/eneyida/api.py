@@ -21,7 +21,7 @@ router = APIRouter(prefix="/eneyida")
 def addon_manifest() -> Manifest:
     manifest = Manifest(
         id="ua.cakestwix.stremio.eneyida",
-        version="1.0.0",
+        version="1.1.0",
         logo=f"https://www.google.com/s2/favicons?domain={settings.main_url}&sz=128",
         name="Eneyida",
         description="Мета проекту «Енеїда» - популяризація української мови, демонстрація її різнобарвності та сучасності. Ми плануємо робити це через ретрансляцію якісного кіно, мультфільмів, телесеріалів та різноманітних телешоу в якісному українському перекладі. Тож, у добрий шлях дорогі конфіденти!.",
@@ -127,7 +127,7 @@ async def addon_search(
     query: str,
     session: aiohttp.ClientSession = Depends(get_session),
 ) -> dict[str, list[Preview]]:
-    async with session.get(f"{settings.finder_url}?query={str(query)}") as response:
-        response_data = await response.json()
+    async with session.post(f"{settings.main_url}", data={"do": "search", "subaction": "search", "story": query}) as response:
+        response_data = await response.text()
 
-    return await get_previews_metadata(response_data)
+    return await get_previews_metadata(response_data, "series")
