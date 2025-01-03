@@ -35,6 +35,12 @@
 	```bash
 	uvicorn app.stremio:app --reload
 	```
+
+ 4. Або через Docker
+    ```
+    docker build --no-cache -t stremio-uk .
+    docker run -d -p 80:8000 --restart unless-stopped stremio-uk
+    ```
 - Документація від FastAPI
 	```
 	http://127.0.0.1:8000/docs
