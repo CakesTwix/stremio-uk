@@ -58,7 +58,7 @@ async def get_videos(
 
     soup = BeautifulSoup(response_text, "html.parser")
     async with session.get(soup.select_one(".tabs_b.visible iframe")["src"]) as response:
-        if "/vod/" in soup.select_one(".tabs_b.visible iframe")["src"]:
+        if "/vid/" in soup.select_one(".tabs_b.visible iframe")["src"]:
             plr_soup = BeautifulSoup(await response.text(), "html.parser")
             videos.append(
                 Videos(
@@ -73,7 +73,7 @@ async def get_videos(
         else:
             plr_soup = BeautifulSoup(await response.text(), "html.parser")
             plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
-            
+
             seen_titles = set()
             for dub in plr_json:
                 for season in dub["folder"]:
@@ -124,5 +124,5 @@ async def get_streams(
                                 )
 
 
-    
+
     return streams
