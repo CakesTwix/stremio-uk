@@ -73,7 +73,23 @@ async def get_videos(
             )
         else:
             plr_soup = BeautifulSoup(await response.text(), "html.parser")
-            plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
+            script_tag = plr_soup.body.find("script")
+            print(script_tag.text)
+            # Regex to extract the `file` value
+            file_match = re.search(r'file:\s*\'(\[.*?\])\'', script_tag.string, re.DOTALL)
+            if not file_match:
+                raise ValueError("File content not found in the script.")
+
+            # Extracted file content as a JSON string
+            file_content = file_match.group(1)
+            print("FILE MATCH")
+            print(file_content)
+#             plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
+
+            try:
+                plr_json = json.loads(file_match.group(1))
+            except json.JSONDecodeError as e:
+                raise ValueError("Failed to parse JSON data from the file field.") from e
 
             seen_titles = set()
             for dub in plr_json:
