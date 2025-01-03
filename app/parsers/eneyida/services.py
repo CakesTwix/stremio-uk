@@ -45,7 +45,7 @@ async def get_series_metadata(
             description=soup.find("article", class_="full_content-desc").text,
             director=[],
             runtime="",
-            background=soup.select_one(".full_header__bg-img").get('style').split("(")[1][:-2],
+            background=f'{settings.main_url}{soup.find("div", class_="full_content-poster").find("img")["src"]}',
             videos=videos,
         )
     }
