@@ -5,6 +5,7 @@ from .settings import settings
 import aiohttp
 import json
 from .utils import extract_numbers
+import re
 
 
 async def get_session():
@@ -100,9 +101,20 @@ async def get_streams(
 
     soup = BeautifulSoup(response_text, "html.parser")
     async with session.get(soup.select_one(".tabs_b.visible iframe")["src"]) as response:
+
         plr_soup = BeautifulSoup(await response.text(), "html.parser")
-        if "/vod/" in soup.select_one(".tabs_b.visible iframe")["src"]:
-            plr_url = plr_soup.body.find("script", type="text/javascript").text.split("file: \"")[1].split("\",")[0]
+#         print(plr_soup)
+
+        if "/vid/" in soup.select_one(".tabs_b.visible iframe")["src"]:
+            script_tag = plr_soup.body.find("script")
+            print(script_tag)
+            if not script_tag:
+                raise ValueError("Script tag with Playerjs initialization not found.")
+            file_url_match = re.search(r'file:\s*"(.*?)"', script_tag.text)
+            if not file_url_match:
+                raise ValueError("File URL not found in the script.")
+
+            plr_url = file_url_match.group(1)
             streams["streams"].append(
                 Stream(
                     name="Фільм",
