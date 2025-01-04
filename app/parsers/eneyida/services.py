@@ -119,8 +119,6 @@ async def get_streams(
     async with session.get(soup.select_one(".tabs_b.visible iframe")["src"]) as response:
 
         plr_soup = BeautifulSoup(await response.text(), "html.parser")
-#         print(plr_soup)
-
         if "/vid/" in soup.select_one(".tabs_b.visible iframe")["src"]:
             script_tag = plr_soup.body.find("script")
             print(script_tag)
@@ -138,8 +136,19 @@ async def get_streams(
                 )
             )
         else:
-            plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
+            script_tag = plr_soup.body.find("script")
+            if not script_tag:
+                raise ValueError("Script tag with Playerjs initialization not found.")
+            file_match = re.search(r'file:\s*\'(\[.*?\])\'', script_tag.string, re.DOTALL)
+            if not file_match:
+                raise ValueError("File URL not found in the script.")
+
+#             plr_json = file_match.group(1)
+#             print(plr_json)
+
+            plr_json = json.loads(file_match.group(1))
             for dub in plr_json:
+                print(dub)
                 for season in dub["folder"]:
                     if season["title"] == season_param:
                         for episode in season["folder"]:
