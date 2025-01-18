@@ -5,6 +5,7 @@ from .settings import settings
 import aiohttp
 import json
 from .utils import extract_numbers
+import re
 
 
 async def get_session():
@@ -45,7 +46,7 @@ async def get_series_metadata(
             description=soup.find("article", class_="full_content-desc").text,
             director=[],
             runtime="",
-            background=soup.select_one(".full_header__bg-img").get('style').split("(")[1][:-2],
+            background=f'{settings.main_url}{soup.find("div", class_="full_content-poster").find("img")["src"]}',
             videos=videos,
         )
     }
@@ -58,7 +59,7 @@ async def get_videos(
 
     soup = BeautifulSoup(response_text, "html.parser")
     async with session.get(soup.select_one(".tabs_b.visible iframe")["src"]) as response:
-        if "/vod/" in soup.select_one(".tabs_b.visible iframe")["src"]:
+        if "/vid/" in soup.select_one(".tabs_b.visible iframe")["src"]:
             plr_soup = BeautifulSoup(await response.text(), "html.parser")
             videos.append(
                 Videos(
@@ -72,8 +73,24 @@ async def get_videos(
             )
         else:
             plr_soup = BeautifulSoup(await response.text(), "html.parser")
-            plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
-            
+            script_tag = plr_soup.body.find("script")
+            print(script_tag.text)
+            # Regex to extract the `file` value
+            file_match = re.search(r'file:\s*\'(\[.*?\])\'', script_tag.string, re.DOTALL)
+            if not file_match:
+                raise ValueError("File content not found in the script.")
+
+            # Extracted file content as a JSON string
+            file_content = file_match.group(1)
+            print("FILE MATCH")
+            print(file_content)
+#             plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
+
+            try:
+                plr_json = json.loads(file_match.group(1))
+            except json.JSONDecodeError as e:
+                raise ValueError("Failed to parse JSON data from the file field.") from e
+
             seen_titles = set()
             for dub in plr_json:
                 for season in dub["folder"]:
@@ -100,9 +117,18 @@ async def get_streams(
 
     soup = BeautifulSoup(response_text, "html.parser")
     async with session.get(soup.select_one(".tabs_b.visible iframe")["src"]) as response:
+
         plr_soup = BeautifulSoup(await response.text(), "html.parser")
-        if "/vod/" in soup.select_one(".tabs_b.visible iframe")["src"]:
-            plr_url = plr_soup.body.find("script", type="text/javascript").text.split("file: \"")[1].split("\",")[0]
+        if "/vid/" in soup.select_one(".tabs_b.visible iframe")["src"]:
+            script_tag = plr_soup.body.find("script")
+            print(script_tag)
+            if not script_tag:
+                raise ValueError("Script tag with Playerjs initialization not found.")
+            file_url_match = re.search(r'file:\s*"(.*?)"', script_tag.text)
+            if not file_url_match:
+                raise ValueError("File URL not found in the script.")
+
+            plr_url = file_url_match.group(1)
             streams["streams"].append(
                 Stream(
                     name="Фільм",
@@ -110,8 +136,19 @@ async def get_streams(
                 )
             )
         else:
-            plr_json = json.loads(plr_soup.body.find("script", type="text/javascript").text.split("file: '")[1].split("',")[0])
+            script_tag = plr_soup.body.find("script")
+            if not script_tag:
+                raise ValueError("Script tag with Playerjs initialization not found.")
+            file_match = re.search(r'file:\s*\'(\[.*?\])\'', script_tag.string, re.DOTALL)
+            if not file_match:
+                raise ValueError("File URL not found in the script.")
+
+#             plr_json = file_match.group(1)
+#             print(plr_json)
+
+            plr_json = json.loads(file_match.group(1))
             for dub in plr_json:
+                print(dub)
                 for season in dub["folder"]:
                     if season["title"] == season_param:
                         for episode in season["folder"]:
@@ -124,5 +161,5 @@ async def get_streams(
                                 )
 
 
-    
+
     return streams
